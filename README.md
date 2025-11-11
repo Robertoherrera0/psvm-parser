@@ -3,8 +3,10 @@ CS4450 - Parser Project - Public Static Void Main Group
 
 ## Setup
 You need Java 11+
+
 Download ANTLR 4.13.2:
-curl -O https://www.antlr.org/download/antlr-4.13.2-complete.jar
+
+```curl -O https://www.antlr.org/download/antlr-4.13.2-complete.jar```
 
 
 ## How to Run
