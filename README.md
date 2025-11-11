@@ -10,7 +10,7 @@ Download ANTLR 4.13.2:
 
 
 ## How to Run
-```java -jar antlr-4.13.2-complete.jar -Dlanguage=Java -visitor -no-listener Parser.g4 -o build```
+```java -jar antlr-4.13.2-complete.jar -Dlanguage=Java Parser.g4 -o build```
 
 ```javac -cp ".;antlr-4.13.2-complete.jar;build" build/*.java```
 
