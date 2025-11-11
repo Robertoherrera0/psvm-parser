@@ -8,7 +8,8 @@ curl -O https://www.antlr.org/download/antlr-4.13.2-complete.jar
 
 
 ## How to Run
-java -jar antlr-4.13.2-complete.jar -Dlanguage=Java -visitor -no-listener Parser.g4 -o build
-javac -cp ".;antlr-4.13.2-complete.jar;build" build/*.java
-java -cp ".;antlr-4.13.2-complete.jar;build" org.antlr.v4.gui.TestRig Parser program -tree project_deliverable_1.py
+```java -jar antlr-4.13.2-complete.jar -Dlanguage=Java -visitor -no-listener Parser.g4 -o build```
 
+```javac -cp ".;antlr-4.13.2-complete.jar;build" build/*.java```
+
+```java -cp ".;antlr-4.13.2-complete.jar;build" org.antlr.v4.gui.TestRig Parser program -tree project_deliverable_1.py```
