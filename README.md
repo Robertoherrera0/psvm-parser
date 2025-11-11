@@ -10,8 +10,23 @@ Download ANTLR 4.13.2:
 
 
 ## How to Run
+
+Set classpath
+
+```export CLASSPATH=".;antlr-4.13.2-complete.jar;build;$CLASSPATH"```
+
+Generate parser and lexer
+
 ```java -jar antlr-4.13.2-complete.jar -Dlanguage=Java Parser.g4 -o build```
 
-```javac -cp ".;antlr-4.13.2-complete.jar;build" build/*.java```
+Compile
 
-```java -cp ".;antlr-4.13.2-complete.jar;build" org.antlr.v4.gui.TestRig Parser program -tree project_deliverable_1.py```
+```javac build/*.java```
+
+Parser tree as text
+
+```java org.antlr.v4.gui.TestRig Parser program -tree project_deliverable_1.py```
+
+Parser tree as image
+
+```java org.antlr.v4.gui.TestRig Parser program -gui project_deliverable_1.py```
