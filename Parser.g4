@@ -1,6 +1,9 @@
 grammar Parser;
 
-program : expression+ EOF ;
+program : assignment+ EOF ;
+
+// Assignments
+assignment : ID ASSIGNMENT_OPERATOR definition;
 
 // Arithmetic operators
 expression
@@ -11,6 +14,22 @@ expression
     | NUMBER
     ;
 
-ID      : [a-zA-Z_][a-zA-Z_0-9]* ;
+// Type definitions
+definition : expression | array | string ;
+
+array : '[' array_list ;
+array_list
+    : (expression | string) ']'
+    | (expression | string) ',' array_list
+    ;
+
+string : STRING;
+
+
+WS : [ \t\r\n]+ -> skip ;
+
+ASSIGNMENT_OPERATOR : ('+' | '-' | '*' | '/' )? '=' ;
+STRING : ('"' | '\'') ~[\\\r\n'"]* ('"' | '\'');
 NUMBER  : [0-9]+ ('.' [0-9]+)? ;
-WS      : [ \t\r\n]+ -> skip ;
+
+ID      : [a-zA-Z_][a-zA-Z_0-9]* ;
