@@ -1,6 +1,6 @@
 grammar Parser;
 
-program : statement+ EOF ;
+program : (statement | NEWLINE)+ EOF ;
 
 // Assignments
 assignment : ID ASSIGNMENT definition;
@@ -61,12 +61,21 @@ array_values : (definition ',')* definition ;
 string : STRING;
 
 statement
-    : assignment
-    | expression
-    | ifElseStatement
+    : assignment NEWLINE
+    | expression NEWLINE
+    | ifElseStatement NEWLINE
+    | increaseScope
     ;
 
-WS : [ \t\r\n]+ -> skip ;
+increaseScope
+    : (TAB)+ statement
+    ;
+
+
+// Whitespace
+TAB: '\t';
+NEWLINE: '\n';
+WS : [ \r]+ -> skip ;
 
 ASSIGNMENT : ('+' | '-' | '*' | '/' )? '=' ;
 STRING : ('"' | '\'') ~[\\\r\n'"]* ('"' | '\'');
