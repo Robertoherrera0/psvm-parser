@@ -55,7 +55,10 @@ value
 // Type definitions
 definition : expression | array | string ;
 
-array : '[' array_values ']';
+array
+    : '[]'
+    | '[' array_values ']'
+    ;
 array_values : (definition ',')* definition ;
 
 string : STRING;
