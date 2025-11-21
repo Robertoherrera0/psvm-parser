@@ -1,6 +1,6 @@
 grammar Parser;
 
-program : (statement | NEWLINE)+ EOF ;
+program : (statement NEWLINE | NEWLINE)* statement? EOF ;
 
 // Assignments
 assignment : ID ASSIGNMENT definition;
@@ -61,14 +61,14 @@ array_values : (definition ',')* definition ;
 string : STRING;
 
 statement
-    : assignment NEWLINE
-    | expression NEWLINE
-    | ifElseStatement NEWLINE
+    : assignment
+    | expression
+    | ifElseStatement
     | increaseScope
     ;
 
 increaseScope
-    : (TAB)+ statement
+    : TAB+ statement
     ;
 
 
