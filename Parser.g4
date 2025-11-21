@@ -27,6 +27,12 @@ comparison
     : addition (COMPARISON addition)?
     ;
 
+// If statements
+ifElseStatement
+    : (IF | ELIF) expression ':'
+    | ELSE ':'
+    ;
+
 // Arithmetic operators
 addition
     : multiplication (('+' | '-') multiplication)*
@@ -57,13 +63,18 @@ string : STRING;
 statement
     : assignment
     | expression
+    | ifElseStatement
     ;
 
 WS : [ \t\r\n]+ -> skip ;
 
 ASSIGNMENT : ('+' | '-' | '*' | '/' )? '=' ;
 STRING : ('"' | '\'') ~[\\\r\n'"]* ('"' | '\'');
-NUMBER  : [0-9]+ ('.' [0-9]+)? ;
+NUMBER : [-]? [0-9]+ ('.' [0-9]+)? ;
+
+IF : 'if';
+ELSE : 'else';
+ELIF: 'elif';
 
 // Boolean
 TRUE : 'True';
