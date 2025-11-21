@@ -28,7 +28,7 @@ comparison
     ;
 
 // If statements
-ifElseStatement
+if_else_statement
     : (IF | ELIF) expression ':'
     | ELSE ':'
     ;
@@ -66,11 +66,11 @@ string : STRING;
 statement
     : assignment
     | expression
-    | ifElseStatement
-    | increaseScope
+    | if_else_statement
+    | increase_scope
     ;
 
-increaseScope
+increase_scope
     : TAB+ statement
     ;
 
