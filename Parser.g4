@@ -47,9 +47,11 @@ value
     | ID
     | NUMBER
     | STRING
+    | TRIPLE_STRING
     | TRUE
     | FALSE
     | array
+    | range_call
     ;
 
 // Type definitions
@@ -63,10 +65,34 @@ array_values : (definition ',')* definition ;
 
 string : STRING;
 
+while_statement
+    : WHILE (expression | '(' expression ')') ':'
+    ;
+
+for_statement
+    : FOR ID IN iterable ':'
+    ;
+
+iterable
+    : ID
+    | array
+    | range_call
+    ;
+
+range_call
+    : RANGE '(' arguments ')'
+    ;
+
+arguments
+    : expression (',' expression)*
+    ;
+
 statement
     : assignment
     | expression
     | if_else_statement
+    | while_statement      
+    | for_statement        
     | increase_scope
     ;
 
@@ -74,16 +100,30 @@ increase_scope
     : TAB+ statement
     ;
 
-
 // Whitespace
 TAB: '\t';
 NEWLINE: '\n';
 WS : [ \r]+ -> skip ;
 
-ASSIGNMENT : ('+' | '-' | '*' | '/' )? '=' ;
-STRING : ('"' | '\'') ~[\\\r\n'"]* ('"' | '\'');
-NUMBER : [-]? [0-9]+ ('.' [0-9]+)? ;
+// Comments
+COMMENT : '#' ~[\r\n]* -> skip ;
 
+// Strings
+STRING
+    : '"' (~["\n\r])* '"'
+    | '\'' (~['\n\r])* '\''
+    ;
+
+// Multi-line comments
+TRIPLE_STRING
+    : '\'\'\'' .*? '\'\'\''
+    | '"""'    .*? '"""'
+    ;
+
+// Numbers
+NUMBER : '-'? [0-9]+ ('.' [0-9]+)? ;
+
+// Keywords
 IF : 'if';
 ELSE : 'else';
 ELIF: 'elif';
@@ -95,7 +135,17 @@ AND : 'and';
 OR  : 'or';
 NOT : 'not';
 
+// Loops
+WHILE : 'while';
+FOR   : 'for';
+IN    : 'in';
+RANGE : 'range';
+
+// Assignment operators
+ASSIGNMENT : ('+' | '-' | '*' | '/' )? '=' ;
+
 // Comparison operators
 COMPARISON : '<=' | '>=' | '==' | '!=' | '<' | '>' ;
 
+// Identifiers
 ID : [a-zA-Z_][a-zA-Z_0-9]* ;
