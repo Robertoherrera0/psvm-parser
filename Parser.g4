@@ -272,9 +272,9 @@ arithmetic
     | multiplication
     | addition
     ;
+
 addition
-    : value
-    | (value | multiplication) (('+' | '-') (value | multiplication))*
+    : (value | multiplication) (('+' | '-') (value | multiplication))*
     ;
 
 multiplication
