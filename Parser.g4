@@ -203,8 +203,6 @@ expression
     | arithmetic
     | '(' comparison ')'
     | comparison
-    | '(' and_expr ')'
-    | and_expr
     | '(' not_expr ')'
     | not_expr
     | '(' and_expr ')'
