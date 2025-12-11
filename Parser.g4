@@ -1,6 +1,79 @@
 grammar Parser;
 
-program : (statement NEWLINE | NEWLINE)* statement? EOF ;
+tokens {
+    INDENT,
+    DEDENT
+}
+
+@lexer::header {
+    import org.antlr.v4.runtime.*;
+}
+@lexer::members {
+    private java.util.LinkedList<Token> pending = new java.util.LinkedList<>();
+    private java.util.Stack<Integer> indents = new java.util.Stack<>();
+    private int last_token_type = -1;
+    private boolean atLineStart = true;
+
+    private CommonToken makeDedent() {
+        CommonToken t = new CommonToken(DEDENT, "");
+        t.setLine(_tokenStartLine);
+        t.setCharPositionInLine(_tokenStartCharPositionInLine);
+        return t;
+    }
+    private CommonToken makeIndent(String text) {
+        CommonToken t = new CommonToken(INDENT, text);
+        t.setLine(_tokenStartLine);
+        t.setCharPositionInLine(_tokenStartCharPositionInLine);
+        return t;
+    }
+
+    @Override
+    public org.antlr.v4.runtime.Token nextToken() {
+        if (!pending.isEmpty()) {
+            return pending.poll();
+        }
+
+        org.antlr.v4.runtime.Token t = super.nextToken();
+        if (!pending.isEmpty()) {
+            return pending.poll();
+        }
+
+        Token t = super.nextToken();
+        if (t.getType() == EOF) {
+            // Emit needed DEDENTs at end of file
+            while (!indents.isEmpty()) {
+                indents.pop();
+                pending.add(makeDedent());
+            }
+            pending.add(t);
+            return pending.poll();
+        }
+
+        last_token_type = t.getType();
+        return t;
+    }
+
+    private void handleIndentation(String whitespace) {
+        int indent = 0;
+        for (char c : whitespace.toCharArray()) {
+            indent += (c == '\t') ? 8 : 1;
+        }
+
+        int prev = !indents.isEmpty() ? indents.peek() : 0;
+        if (indent > prev) {
+            indents.push(indent);
+            pending.add(makeIndent(whitespace));
+        }
+        else if (indent < prev) {
+            while (!indents.isEmpty() && indents.peek() > indent) {
+                indents.pop();
+                pending.add(makeDedent());
+            }
+        }
+    }
+}
+
+program : (statement | NEWLINE)* statement? EOF ;
 
 // Assignments
 assignment : ID ASSIGNMENT definition;
@@ -27,11 +100,15 @@ comparison
     : addition (COMPARISON addition)?
     ;
 
-// If statements
-if_else_statement
-    : (IF | ELIF) expression ':'
-    | ELSE ':'
-    ;
+
+// Nested code blocks
+block : NEWLINE INDENT statement+ DEDENT ;
+
+// If-else statements
+if_statement : IF expression ':' block (NEWLINE elif_statement)? ;
+elif_statement : ELIF expression ':' block (NEWLINE else_statement)? ;
+else_statement : ELSE ':' block ;
+
 
 // Arithmetic operators
 addition
@@ -90,19 +167,18 @@ arguments
 statement
     : assignment
     | expression
-    | if_else_statement
-    | while_statement      
-    | for_statement        
-    | increase_scope
-    ;
-
-increase_scope
-    : TAB+ statement
+    | if_statement
+    | while_statement
+    | for_statement
     ;
 
 // Whitespace
-TAB: '\t';
-NEWLINE: '\n';
+NEWLINE : '\r'? '\n' { atLineStart = true; };
+LEADING_WS : { atLineStart }? [ \t]+ { 
+        atLineStart = false;
+        handleIndentation(getText()); 
+        skip();
+    } ;
 WS : [ \r]+ -> skip ;
 
 // Comments
