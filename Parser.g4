@@ -212,16 +212,35 @@ expression
     ;
 
 or_expr
-    : and_expr (OR and_expr)*
+    : sub_or_expr (OR sub_or_expr)*
+    ;
+sub_or_expr
+    : value
+    | arithmetic
+    | comparison
+    | not_expr
+    | and_expr
     ;
 
 and_expr
-    : not_expr (AND not_expr)*
+    : sub_and_expr (AND sub_and_expr)*
+    ;
+sub_and_expr
+    : value
+    | arithmetic
+    | comparison
+    | not_expr
     ;
 
 not_expr
-    : NOT not_expr
+    : NOT sub_not_expr
     | comparison
+    ;
+sub_not_expr
+    : value
+    | arithmetic
+    | comparison
+    | not_expr
     ;
 
 comparison
@@ -255,7 +274,7 @@ arithmetic
     ;
 addition
     : value
-    | multiplication (('+' | '-') multiplication)*
+    | (value | multiplication) (('+' | '-') (value | multiplication))*
     ;
 
 multiplication

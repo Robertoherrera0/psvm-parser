@@ -60,7 +60,7 @@ else:
 	and more...
 '''
 
-while data > 0 or data != 0:
+while data > 0 or data != 0 and data > -5:
 	data = data - 1
 	if True:
 		a = "This is the weirdest code I have ever written"
