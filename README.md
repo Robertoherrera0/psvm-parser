@@ -19,11 +19,13 @@ Download ANTLR 4.13.2:
 
 ## How to Run
 
-Before running, ensure `antlr-4.13.2-complete.jar` is in the project directory.
+Before running, ensure `antlr-4.13.2-complete.jar` is in the project directory and set classpath
+
+`export CLASSPATH=".;antlr-4.13.2-complete.jar;build;$CLASSPATH"`
 
 ### Using the Script
 
-The script rebuilds the parser and runs it on `project_deliverable_3.py`.
+This script rebuilds the parser and runs it on `project_deliverable_3.py`.
 
 Text output: `./run.sh -tree`
 
@@ -32,9 +34,6 @@ GUI output: `./run.sh -gui`
 If no argument are given, it defaults to `-tree`
 
 ### Manual Execution
-Set classpath
-
-`export CLASSPATH=".;antlr-4.13.2-complete.jar;build;$CLASSPATH"`
 
 Generate parser and lexer
 
