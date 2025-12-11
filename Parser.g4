@@ -249,7 +249,7 @@ array_values : (definition ',')* definition ;
 
 string : STRING;
 
-arguments : or_expr (',' or_expr)* ;
+arguments : expression (',' expression)* ;
 
 // Lexer Rules
 NEWLINE : '\r'? '\n' ;
