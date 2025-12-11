@@ -9,8 +9,6 @@ elif [ "$1" == "-tree" ]; then
     MODE="-tree"
 fi
 
-export CLASSPATH=".;antlr-4.13.2-complete.jar;build:$CLASSPATH"
-
 rm -rf build
 mkdir build
 
