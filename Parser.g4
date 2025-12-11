@@ -1,11 +1,188 @@
 grammar Parser;
 
+@lexer::header {
+import java.util.*;
+}
+
+@lexer::members {
+    Integer currentIndent = 0;
+    private final Queue<Token> tokenQueue = new LinkedList<>();
+    private boolean atLineStart = true;
+    private boolean debug = false;
+
+    @Override
+    public Token nextToken() {
+        if (!tokenQueue.isEmpty()) {
+            Token t = tokenQueue.poll();
+            if (debug) System.out.println("DEQUEUE: " + getTokenName(t));
+            return t;
+        }
+
+        if (atLineStart) {
+            atLineStart = false;
+            return handleIndentation();
+        }
+
+        Token next = super.nextToken();
+        if (debug) System.out.println("RAW TOKEN: " + getTokenName(next));
+        
+        if (next.getType() == EOF) {
+            // Add trailing newline
+            if (debug) System.out.println("Adding newline to EOF");
+            tokenQueue.add(createToken(ParserParser.NEWLINE, ""));
+
+            if (debug) System.out.println("EOF; currentIndent: " + currentIndent);
+            while (currentIndent > 0) {
+                currentIndent--;
+                if (debug) System.out.println("Adding DEDENT at EOF");
+                tokenQueue.add(createToken(ParserParser.DEDENT, ""));
+            }
+
+            if (!tokenQueue.isEmpty()) {
+                tokenQueue.add(next);
+                return tokenQueue.poll();
+            }
+            return next;
+        }
+
+        if (next.getType() == NEWLINE) {
+            atLineStart = true;
+        }
+
+        return next;
+    }
+    
+    private Token handleIndentation() {
+        int indent = 0;
+        int start = _input.index();
+        
+        // Count spaces and tabs
+        while (true) {
+            int c = _input.LA(1);
+            if (c == '\t') {
+                indent++;
+                _input.consume();
+            }
+            else {
+                break;
+            }
+        }
+        
+        // Check for EOF
+        int c = _input.LA(1);
+        if (c == IntStream.EOF) {
+            if (debug) System.out.println("EOF at line start");
+            while (currentIndent > 0) {
+                currentIndent -= 1;
+               if (debug) System.out.println("Creating DEDENT at EOF");
+                tokenQueue.add(createToken(ParserParser.DEDENT, ""));
+            }
+            tokenQueue.add(createToken(EOF, ""));
+            return tokenQueue.poll();
+        }
+        
+        if (debug) System.out.println("Line start: indent=" + indent + ", current=" + currentIndent);
+        
+        if (indent > currentIndent) {
+            while (indent > currentIndent) {
+                currentIndent++;
+                if (debug) System.out.println("Adding INDENT");
+                tokenQueue.add(createToken(ParserParser.INDENT, ""));
+            }
+        }
+        else if (indent < currentIndent) {
+            while (indent < currentIndent) {
+                currentIndent--;
+                if (debug) System.out.println("Adding DEDENT");
+                tokenQueue.add(createToken(ParserParser.DEDENT, ""));
+            }
+        }
+        
+        if (!tokenQueue.isEmpty()) {
+            return tokenQueue.poll();
+        }
+        
+        return super.nextToken();
+    }
+    
+    private String getTokenName(Token t) {
+        String name = ParserParser.VOCABULARY.getSymbolicName(t.getType());
+        if (name == null) name = ParserParser.VOCABULARY.getLiteralName(t.getType());
+        if (name == null) name = "UNKNOWN";
+        return String.format("%s '%s' (line %d, col %d)", 
+            name, t.getText().replace("\n", "\\n").replace("\r", "\\r"), 
+            t.getLine(), t.getCharPositionInLine());
+    }
+
+    private Token handleNewline(Token newlineToken) {
+        Token peek = super.nextToken();
+        if (debug) System.out.println("After NEWLINE, peeked: " + getTokenName(peek));
+        
+        // Skip blank lines and comments
+        while (peek.getType() == NEWLINE) {
+            newlineToken = peek;
+            peek = super.nextToken();
+            if (debug) System.out.println("Skipping blank line, next peek: " + getTokenName(peek));
+        }
+
+        if (peek.getType() == EOF) {
+            if (debug) System.out.println("EOF after newline");
+            tokenQueue.add(newlineToken);
+            tokenQueue.add(peek);
+            return tokenQueue.poll();
+        }
+
+        // Get indentation level from column position
+        int indent = peek.getCharPositionInLine();
+        
+        if (debug) System.out.println("Indent: " + indent + ", Current: " + currentIndent);
+        
+        tokenQueue.add(newlineToken);
+
+        if (indent > currentIndent) {
+            while (indent > currentIndent) {
+                currentIndent++;
+                if (debug) System.out.println("Adding INDENT");
+                tokenQueue.add(createToken(ParserParser.INDENT, ""));
+            }
+        }
+        else if (indent < currentIndent) {
+            while (currentIndent > indent) {
+                currentIndent--;
+                if (debug) System.out.println("Adding DEDENT");
+                tokenQueue.add(createToken(ParserParser.DEDENT, ""));
+            }
+            if (currentIndent == 0) {
+                throw new RuntimeException("Indentation error at line " + peek.getLine());
+            }
+        }
+
+        tokenQueue.add(peek);
+        return tokenQueue.poll();
+    }
+
+    private Token createToken(int type, String text) {
+        CommonToken token = new CommonToken(type, text);
+        token.setLine(getLine());
+        token.setCharPositionInLine(getCharPositionInLine());
+        return token;
+    }
+
+    @Override
+    public void reset() {
+        currentIndent = 0;
+        tokenQueue.clear();
+        atLineStart = true;
+        super.reset();
+    }
+}
+
 tokens {
     INDENT,
     DEDENT
 }
 
-program : (statement | NEWLINE)* statement? EOF ;
+program : statement* EOF ;
 
 statement
     : assignment
@@ -20,7 +197,8 @@ assignment : ID ASSIGNMENT definition NEWLINE;
 
 // Conditionals
 expression
-    : or_expr
+    : '(' or_expr ')'
+    | or_expr
     ;
 
 or_expr
@@ -42,12 +220,12 @@ comparison
 
 
 // Nested code blocks
-block : NEWLINE INDENT statement+ DEDENT ;
+block : INDENT statement+ DEDENT ;
 
 // If-else statements
-if_statement : 'if' expression ':' block (NEWLINE elif_statement)? ;
-elif_statement : 'elif' expression ':' block (NEWLINE else_statement)? ;
-else_statement : 'ELSE' ':' block ;
+if_statement : IF expression ':' NEWLINE block elif_statement* else_statement?;
+elif_statement : ELIF expression ':' NEWLINE block;
+else_statement : ELSE ':' NEWLINE block ;
 
 // Iteration
 range_call : RANGE '(' arguments ')' ;
@@ -56,8 +234,8 @@ iterable
     | array
     | range_call
     ;
-while_statement : WHILE or_expr ':' block ;
-for_statement : FOR ID IN iterable ':' block ;
+while_statement : WHILE expression ':' NEWLINE block ;
+for_statement : FOR ID IN iterable ':' NEWLINE block ;
 
 // Arithmetic operators
 addition
@@ -73,7 +251,7 @@ value
     | ID
     | NUMBER
     | STRING
-    | TRIPLE_STRING
+    | MULTILINE_COMMENT
     | TRUE
     | FALSE
     | array
@@ -95,20 +273,17 @@ arguments : or_expr (',' or_expr)* ;
 
 // Lexer Rules
 NEWLINE : '\r'? '\n' ;
-WS : [ \t]+ -> skip;
+WS : [ ]+ -> skip;
 
+// Comments
 COMMENT : '#' ~[\r\n]* -> skip ;
+MULTILINE_COMMENT
+    : ('\'\'\'' .*? '\'\'\'' | '"""' .*? '"""') -> skip ;
 
 // Strings
 STRING
     : '"' (~["\n\r])* '"'
     | '\'' (~['\n\r])* '\''
-    ;
-
-// Multi-line comments
-TRIPLE_STRING
-    : '\'\'\'' .*? '\'\'\''
-    | '"""'    .*? '"""'
     ;
 
 // Numbers
