@@ -5,78 +5,18 @@ tokens {
     DEDENT
 }
 
-@lexer::header {
-    import org.antlr.v4.runtime.*;
-}
-@lexer::members {
-    private java.util.LinkedList<Token> pending = new java.util.LinkedList<>();
-    private java.util.Stack<Integer> indents = new java.util.Stack<>();
-    private int last_token_type = -1;
-    private boolean atLineStart = true;
-
-    private CommonToken makeDedent() {
-        CommonToken t = new CommonToken(DEDENT, "");
-        t.setLine(_tokenStartLine);
-        t.setCharPositionInLine(_tokenStartCharPositionInLine);
-        return t;
-    }
-    private CommonToken makeIndent(String text) {
-        CommonToken t = new CommonToken(INDENT, text);
-        t.setLine(_tokenStartLine);
-        t.setCharPositionInLine(_tokenStartCharPositionInLine);
-        return t;
-    }
-
-    @Override
-    public org.antlr.v4.runtime.Token nextToken() {
-        if (!pending.isEmpty()) {
-            return pending.poll();
-        }
-
-        org.antlr.v4.runtime.Token t = super.nextToken();
-        if (!pending.isEmpty()) {
-            return pending.poll();
-        }
-
-        Token t = super.nextToken();
-        if (t.getType() == EOF) {
-            // Emit needed DEDENTs at end of file
-            while (!indents.isEmpty()) {
-                indents.pop();
-                pending.add(makeDedent());
-            }
-            pending.add(t);
-            return pending.poll();
-        }
-
-        last_token_type = t.getType();
-        return t;
-    }
-
-    private void handleIndentation(String whitespace) {
-        int indent = 0;
-        for (char c : whitespace.toCharArray()) {
-            indent += (c == '\t') ? 8 : 1;
-        }
-
-        int prev = !indents.isEmpty() ? indents.peek() : 0;
-        if (indent > prev) {
-            indents.push(indent);
-            pending.add(makeIndent(whitespace));
-        }
-        else if (indent < prev) {
-            while (!indents.isEmpty() && indents.peek() > indent) {
-                indents.pop();
-                pending.add(makeDedent());
-            }
-        }
-    }
-}
-
 program : (statement | NEWLINE)* statement? EOF ;
 
+statement
+    : assignment
+    | if_statement
+    | while_statement
+    | for_statement
+    | NEWLINE
+    ;
+
 // Assignments
-assignment : ID ASSIGNMENT definition;
+assignment : ID ASSIGNMENT definition NEWLINE;
 
 // Conditionals
 expression
@@ -105,10 +45,19 @@ comparison
 block : NEWLINE INDENT statement+ DEDENT ;
 
 // If-else statements
-if_statement : IF expression ':' block (NEWLINE elif_statement)? ;
-elif_statement : ELIF expression ':' block (NEWLINE else_statement)? ;
-else_statement : ELSE ':' block ;
+if_statement : 'if' expression ':' block (NEWLINE elif_statement)? ;
+elif_statement : 'elif' expression ':' block (NEWLINE else_statement)? ;
+else_statement : 'ELSE' ':' block ;
 
+// Iteration
+range_call : RANGE '(' arguments ')' ;
+iterable
+    : ID
+    | array
+    | range_call
+    ;
+while_statement : WHILE or_expr ':' block ;
+for_statement : FOR ID IN iterable ':' block ;
 
 // Arithmetic operators
 addition
@@ -142,46 +91,12 @@ array_values : (definition ',')* definition ;
 
 string : STRING;
 
-while_statement
-    : WHILE (expression | '(' expression ')') ':'
-    ;
+arguments : or_expr (',' or_expr)* ;
 
-for_statement
-    : FOR ID IN iterable ':'
-    ;
+// Lexer Rules
+NEWLINE : '\r'? '\n' ;
+WS : [ \t]+ -> skip;
 
-iterable
-    : ID
-    | array
-    | range_call
-    ;
-
-range_call
-    : RANGE '(' arguments ')'
-    ;
-
-arguments
-    : expression (',' expression)*
-    ;
-
-statement
-    : assignment
-    | expression
-    | if_statement
-    | while_statement
-    | for_statement
-    ;
-
-// Whitespace
-NEWLINE : '\r'? '\n' { atLineStart = true; };
-LEADING_WS : { atLineStart }? [ \t]+ { 
-        atLineStart = false;
-        handleIndentation(getText()); 
-        skip();
-    } ;
-WS : [ \r]+ -> skip ;
-
-// Comments
 COMMENT : '#' ~[\r\n]* -> skip ;
 
 // Strings
@@ -201,8 +116,8 @@ NUMBER : '-'? [0-9]+ ('.' [0-9]+)? ;
 
 // Keywords
 IF : 'if';
-ELSE : 'else';
 ELIF: 'elif';
+ELSE : 'else';
 
 // Boolean
 TRUE : 'True';
