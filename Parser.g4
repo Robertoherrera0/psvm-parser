@@ -56,7 +56,7 @@ grammar Parser;
         int indent = 0;
         int start = _input.index();
         
-        // Count spaces and tabs
+        // Count tabs
         while (true) {
             int c = _input.LA(1);
             if (c == '\t') {
@@ -83,6 +83,7 @@ grammar Parser;
         
         if (debug) System.out.println("Line start: indent=" + indent + ", current=" + currentIndent);
         
+        // Add INDENTs or DEDENTs
         if (indent > currentIndent) {
             while (indent > currentIndent) {
                 currentIndent++;
@@ -112,53 +113,6 @@ grammar Parser;
         return String.format("%s '%s' (line %d, col %d)", 
             name, t.getText().replace("\n", "\\n").replace("\r", "\\r"), 
             t.getLine(), t.getCharPositionInLine());
-    }
-
-    private Token handleNewline(Token newlineToken) {
-        Token peek = super.nextToken();
-        if (debug) System.out.println("After NEWLINE, peeked: " + getTokenName(peek));
-        
-        // Skip blank lines and comments
-        while (peek.getType() == NEWLINE) {
-            newlineToken = peek;
-            peek = super.nextToken();
-            if (debug) System.out.println("Skipping blank line, next peek: " + getTokenName(peek));
-        }
-
-        if (peek.getType() == EOF) {
-            if (debug) System.out.println("EOF after newline");
-            tokenQueue.add(newlineToken);
-            tokenQueue.add(peek);
-            return tokenQueue.poll();
-        }
-
-        // Get indentation level from column position
-        int indent = peek.getCharPositionInLine();
-        
-        if (debug) System.out.println("Indent: " + indent + ", Current: " + currentIndent);
-        
-        tokenQueue.add(newlineToken);
-
-        if (indent > currentIndent) {
-            while (indent > currentIndent) {
-                currentIndent++;
-                if (debug) System.out.println("Adding INDENT");
-                tokenQueue.add(createToken(ParserParser.INDENT, ""));
-            }
-        }
-        else if (indent < currentIndent) {
-            while (currentIndent > indent) {
-                currentIndent--;
-                if (debug) System.out.println("Adding DEDENT");
-                tokenQueue.add(createToken(ParserParser.DEDENT, ""));
-            }
-            if (currentIndent == 0) {
-                throw new RuntimeException("Indentation error at line " + peek.getLine());
-            }
-        }
-
-        tokenQueue.add(peek);
-        return tokenQueue.poll();
     }
 
     private Token createToken(int type, String text) {
@@ -193,7 +147,7 @@ statement
     ;
 
 // Assignments
-assignment : ID ASSIGNMENT definition NEWLINE;
+assignment : ID ASSIGNMENT definition NEWLINE ;
 
 // Conditionals
 expression
@@ -211,9 +165,7 @@ expression
     | or_expr
     ;
 
-or_expr
-    : sub_or_expr (OR sub_or_expr)*
-    ;
+or_expr : sub_or_expr (OR sub_or_expr)* ;
 sub_or_expr
     : value
     | arithmetic
@@ -222,9 +174,7 @@ sub_or_expr
     | and_expr
     ;
 
-and_expr
-    : sub_and_expr (AND sub_and_expr)*
-    ;
+and_expr : sub_and_expr (AND sub_and_expr)* ;
 sub_and_expr
     : value
     | arithmetic
@@ -243,9 +193,7 @@ sub_not_expr
     | not_expr
     ;
 
-comparison
-    : arithmetic (COMPARISON arithmetic)?
-    ;
+comparison : arithmetic (COMPARISON arithmetic)? ;
 
 
 // Nested code blocks
@@ -273,9 +221,7 @@ arithmetic
     | addition
     ;
 
-addition
-    : (value | multiplication) (('+' | '-') (value | multiplication))*
-    ;
+addition : (value | multiplication) (('+' | '-') (value | multiplication))* ;
 
 multiplication
     : value (('*' | '/' | '%') value)*
@@ -286,7 +232,6 @@ value
     | ID
     | NUMBER
     | STRING
-    | MULTILINE_COMMENT
     | TRUE
     | FALSE
     | array
@@ -312,8 +257,7 @@ WS : [ ]+ -> skip;
 
 // Comments
 COMMENT : '#' ~[\r\n]* -> skip ;
-MULTILINE_COMMENT
-    : ('\'\'\'' .*? '\'\'\'' | '"""' .*? '"""') -> skip ;
+MULTILINE_COMMENT : ('\'\'\'' .*? '\'\'\'' | '"""' .*? '"""') -> skip ;
 
 // Strings
 STRING
