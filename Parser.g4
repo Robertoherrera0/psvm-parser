@@ -1,7 +1,7 @@
 grammar Parser;
 
 @lexer::header {
-import java.util.*;
+    import java.util.*;
 }
 
 @lexer::members {
@@ -197,7 +197,19 @@ assignment : ID ASSIGNMENT definition NEWLINE;
 
 // Conditionals
 expression
-    : '(' or_expr ')'
+    : '(' value ')' // done this way to try to take a shortcut, instead of having or_expr->and_expr->not_expr->...->value
+    | value
+    | '(' arithmetic ')'
+    | arithmetic
+    | '(' comparison ')'
+    | comparison
+    | '(' and_expr ')'
+    | and_expr
+    | '(' not_expr ')'
+    | not_expr
+    | '(' and_expr ')'
+    | and_expr
+    | '(' or_expr ')'
     | or_expr
     ;
 
@@ -215,7 +227,7 @@ not_expr
     ;
 
 comparison
-    : addition (COMPARISON addition)?
+    : arithmetic (COMPARISON arithmetic)?
     ;
 
 
@@ -238,8 +250,14 @@ while_statement : WHILE expression ':' NEWLINE block ;
 for_statement : FOR ID IN iterable ':' NEWLINE block ;
 
 // Arithmetic operators
+arithmetic
+    : value
+    | multiplication
+    | addition
+    ;
 addition
-    : multiplication (('+' | '-') multiplication)*
+    : value
+    | multiplication (('+' | '-') multiplication)*
     ;
 
 multiplication
@@ -259,7 +277,7 @@ value
     ;
 
 // Type definitions
-definition : expression | array | string ;
+definition : value | expression | array | string ;
 
 array
     : '[]'
